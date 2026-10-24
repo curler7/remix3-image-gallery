@@ -52,18 +52,18 @@ Optional exclusions and manual checks are stated explicitly below.
 
 ## Engineering, security and delivery
 
-| Original requirement                                                                                               | Implementation / evidence                                                                               | Status and limits                                                                             |
-| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Inspect tooling/docs and architecture/tasks before code, ordered granular ledger                                   | ARCHITECTURE.md/TASKS.md historical ledger and pinned installed source                                  | Recorded historical process; chronology not newly recreated by this audit                     |
-| Architecture covers boundaries, state/APIs, SSR/lifecycle, concurrency, budgets, a11y, security, testing/tradeoffs | ARCHITECTURE.md plus this table and README                                                              | Implemented; one package with separate exports documented instead of gratuitous fragmentation |
-| Reproducible tooling, licenses, small/tree-shakable dependencies                                                   | Exact package/lock versions, license documentation, separate exports/build sizes                        | Implemented; versions are deliberately pinned, not a claim to newest releases                 |
-| URLs, text/SVG security, redirects/origins, CSP/CORS                                                               | safeURL/safeSrcset, escaped SSR/textContent, tile redirect rejection, README deployment policy          | Implemented; origin restrictions now apply before SSR and atomically to dynamic updates       |
-| No hydration mismatch/listener/observer/object-URL leak, stale async work, runaway caches                          | ref abort/ResizeObserver teardown, generation guards, tile URL instrumentation, bounded caches/tests    | Implemented; cache invalidation clears decoded neighbors when items change                    |
-| Stable IDs and separation of rendering/layout/interaction/loading                                                  | Core and independent geometry/layout/media/pagination/DOM/adapter modules                               | Implemented                                                                                   |
-| Measurable budgets; devices/throttle/slow-network/large-gallery measurements, no absolute FPS claim                | Node benchmarks, per-engine scroll/frame metrics, throttled browser/decode/interaction benchmark        | Implemented synthetic methodology; representative physical-device profiling remains external  |
-| Build/typecheck/lint/unit/integration/E2E/visual/a11y/performance/demo                                             | npm run test:ci (all ten stages, continues independent checks); demo server exercised by browser suites | Required full verification recorded below                                                     |
-| Package/distribution/docs                                                                                          | Public subpaths/declarations, README reproducible commands; npm pack --dry-run                          | Verified separately in final audit                                                            |
-| CI reports/screenshots/failure artifacts                                                                           | .github/workflows/ci.yml and scripts/ci.mjs; all three browser runners                                  | Configured; this local change has not been pushed or hosted-tested                            |
+| Original requirement                                                                                               | Implementation / evidence                                                                               | Status and limits                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Inspect tooling/docs and architecture/tasks before code, ordered granular ledger                                   | ARCHITECTURE.md/TASKS.md historical ledger and pinned installed source                                  | Recorded historical process; chronology not newly recreated by this audit                                             |
+| Architecture covers boundaries, state/APIs, SSR/lifecycle, concurrency, budgets, a11y, security, testing/tradeoffs | ARCHITECTURE.md plus this table and README                                                              | Implemented; one package with separate exports documented instead of gratuitous fragmentation                         |
+| Reproducible tooling, licenses, small/tree-shakable dependencies                                                   | Exact package/lock versions, license documentation, separate exports/build sizes                        | Implemented; versions are deliberately pinned, not a claim to newest releases                                         |
+| URLs, text/SVG security, redirects/origins, CSP/CORS                                                               | safeURL/safeSrcset, escaped SSR/textContent, tile redirect rejection, README deployment policy          | Implemented; origin restrictions now apply before SSR and atomically to dynamic updates                               |
+| No hydration mismatch/listener/observer/object-URL leak, stale async work, runaway caches                          | ref abort/ResizeObserver teardown, generation guards, tile URL instrumentation, bounded caches/tests    | Implemented; cache invalidation clears decoded neighbors when items change                                            |
+| Stable IDs and separation of rendering/layout/interaction/loading                                                  | Core and independent geometry/layout/media/pagination/DOM/adapter modules                               | Implemented                                                                                                           |
+| Measurable budgets; devices/throttle/slow-network/large-gallery measurements, no absolute FPS claim                | Node benchmarks, per-engine scroll/frame metrics, throttled browser/decode/interaction benchmark        | Implemented synthetic methodology; representative physical-device profiling remains external                          |
+| Build/typecheck/lint/unit/integration/E2E/visual/a11y/performance/demo                                             | npm run test:ci (all ten stages, continues independent checks); demo server exercised by browser suites | Required full verification recorded below                                                                             |
+| Package/distribution/docs                                                                                          | Public subpaths/declarations, README reproducible commands; npm pack --dry-run                          | Verified separately in final audit                                                                                    |
+| CI reports/screenshots/failure artifacts                                                                           | .github/workflows/ci.yml and scripts/ci.mjs; all three browser runners                                  | Verified on the audit PR and merged `main`; reports/screenshots uploaded successfully (see hosted verification below) |
 
 ## Test acceptance mapping
 
@@ -116,13 +116,44 @@ and WebKit 27.2. All 21 tracked visual baselines are unchanged; visual regenerat
 was disabled. The shared audit reproduced and corrected an actual browser Back
 regression, then passed Back/Forward/close checks on all three engines.
 
-Package dry-run verification passed with the expected public modules/declarations
+Local package dry-run verification passed with the expected public modules/declarations
 (25 packaged files). `git diff --check` and an explicit Prettier check of this audit
-also pass. Canonical stage results: `artifacts/ci/results.json`; consolidated evidence:
+also pass. Local stage results: `artifacts/ci/results.json`; consolidated evidence:
 `artifacts/requirement-audit-results.json`; per-stage logs: `artifacts/ci/`.
 Benchmark observations and their limits remain in the generated reports rather
-than being represented as device-independent guarantees. These changes are local;
-no new hosted GitHub Actions run is claimed.
+than being represented as device-independent guarantees.
+
+## Hosted verification and merge
+
+The audit implementation passed hosted GitHub Actions on both the topic branch
+and [PR #5](https://github.com/curler7/remix3-image-gallery/pull/5), then merged to
+`main` on 2026-10-24 as
+[`2434e86`](https://github.com/curler7/remix3-image-gallery/commit/2434e86c96d6db3e2add29596cfad8235d6a3c9f).
+The post-merge push run passed on that exact merge commit. GitHub automatically
+deleted the merged `fix/requirement-audit` branch; the PR timeline records the
+`head_ref_deleted` event.
+
+| Revision / trigger            | Hosted full-suite run                                                                   | Result |
+| ----------------------------- | --------------------------------------------------------------------------------------- | ------ |
+| Audit branch push, `04d0128`  | [40078577118](https://github.com/curler7/remix3-image-gallery/actions/runs/40078577118) | Passed |
+| PR #5, `04d0128`              | [40078606098](https://github.com/curler7/remix3-image-gallery/actions/runs/40078606098) | Passed |
+| Merged `main` push, `2434e86` | [40078958927](https://github.com/curler7/remix3-image-gallery/actions/runs/40078958927) | Passed |
+
+Downloaded reports from the PR and post-merge runs confirmed all ten stages passed:
+strict library/demo typecheck and lint, build and 22 Node tests, Chromium, Firefox,
+WebKit, Node benchmarks, throttled browser/decode/interaction benchmarks and
+formatting. Each engine ran 28 scenario groups (10 gallery, nine feature/resource,
+nine codec/lifecycle), with no launch or scenario skips. All 21 visual comparisons
+and automated accessibility checks passed; no baseline regeneration or relaxed
+thresholds were needed, and no hosted-runner fixes were required.
+
+The PR and `main` runs uploaded their JSON reports, stage logs, screenshots and
+visual evidence as `gallery-reports-40078606098-1` and
+`gallery-reports-40078958927-1`, respectively. Download these from the linked run
+pages while available under the configured 14-day retention. The hosted stage
+summary is `artifacts/ci/results.json` within each artifact. These hosted results
+supplement the local audit evidence; the physical-device and manual checks below
+remain unverified.
 
 ## Remaining external/manual work
 
