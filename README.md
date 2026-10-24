@@ -226,7 +226,8 @@ All changes to `main` go through a pull request. The GitHub Actions `full-suite`
    git switch main
    git pull --ff-only
    git fetch --prune
-   git branch -d your-topic
+   # Only after confirming the PR is merged (squash changes commit IDs):
+   git branch -D your-topic
    ```
 
    Confirm the resulting push run on `main` also passes. Administrator overrides are not part of this workflow. The live pending/failing/passing protection checks are recorded in [the verification document](docs/branch-protection-verification.md).
