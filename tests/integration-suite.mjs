@@ -1,3 +1,4 @@
+import { browserEnvironment } from "../scripts/browser-environment.mjs";
 import { captureFailure } from "./failure-artifacts.mjs";
 import { viewportOptions } from "./browser-runtime.mjs";
 import { webkit, firefox } from "playwright";
@@ -16,7 +17,7 @@ export async function runIntegrationSuite(engineName = "webkit") {
   try {
     browser =
       engineName === "firefox"
-        ? await firefox.launch({ headless: true })
+        ? await firefox.launch({ headless: true, env: browserEnvironment() })
         : await webkit.launch(webkitLaunchOptions());
     const base = `http://127.0.0.1:${server.address().port}`;
     const page = await browser.newPage({

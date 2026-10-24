@@ -1,3 +1,4 @@
+import { browserEnvironment } from "./browser-environment.mjs";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -12,16 +13,17 @@ export const runtimeLibraries = [
   "libmanette-0.2.so.0",
 ];
 export function webkitLaunchOptions() {
+  const env = browserEnvironment();
   if (process.platform !== "linux" || process.arch !== "x64")
-    return { headless: true };
+    return { headless: true, env };
   const files = runtimeLibraries.map((name) =>
     path.join(runtimeRoot, "usr/lib/x86_64-linux-gnu", name),
   );
-  if (!files.every(existsSync)) return { headless: true };
+  if (!files.every(existsSync)) return { headless: true, env };
   return {
     headless: true,
     env: {
-      ...process.env,
+      ...env,
       LD_PRELOAD: [...files, process.env.LD_PRELOAD].filter(Boolean).join(":"),
     },
   };

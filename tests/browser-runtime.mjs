@@ -1,9 +1,11 @@
+import { browserEnvironment } from "../scripts/browser-environment.mjs";
 import { chromium, firefox, webkit } from "playwright";
 import { webkitLaunchOptions } from "../scripts/webkit-runtime.mjs";
 export async function launchBrowser(engine) {
   if (engine === "chromium")
     return chromium.launch({ headless: true, args: ["--no-sandbox"] });
-  if (engine === "firefox") return firefox.launch({ headless: true });
+  if (engine === "firefox")
+    return firefox.launch({ headless: true, env: browserEnvironment() });
   if (engine === "webkit") return webkit.launch(webkitLaunchOptions());
   throw Error(`Unsupported shared-suite engine: ${engine}`);
 }
