@@ -273,6 +273,10 @@ footer > a:last-child {
   background: #141914;
   color: #f5f5eb;
   padding: 24px;
+  padding-top: max(24px, env(safe-area-inset-top));
+  padding-right: max(24px, env(safe-area-inset-right));
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  padding-left: max(24px, env(safe-area-inset-left));
   overflow: hidden;
 }
 .viewer::backdrop {
@@ -438,6 +442,9 @@ footer > a:last-child {
   .viewer {
     padding: 12px;
     padding-top: max(12px, env(safe-area-inset-top));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    padding-left: max(12px, env(safe-area-inset-left));
   }
 }
 @media (max-width: 480px) {

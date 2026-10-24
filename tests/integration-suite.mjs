@@ -1,12 +1,9 @@
-import { browserEnvironment } from "../scripts/browser-environment.mjs";
 import { captureFailure } from "./failure-artifacts.mjs";
-import { viewportOptions } from "./browser-runtime.mjs";
-import { webkit, firefox } from "playwright";
+import { viewportOptions, launchBrowser } from "./browser-runtime.mjs";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { build } from "esbuild";
 import { serve } from "../scripts/server.mjs";
-import { webkitLaunchOptions } from "../scripts/webkit-runtime.mjs";
 
 export async function runIntegrationSuite(engineName = "webkit") {
   const server = serve(0);
@@ -15,10 +12,7 @@ export async function runIntegrationSuite(engineName = "webkit") {
   const results = [];
   await mkdir("artifacts", { recursive: true });
   try {
-    browser =
-      engineName === "firefox"
-        ? await firefox.launch({ headless: true, env: browserEnvironment() })
-        : await webkit.launch(webkitLaunchOptions());
+    browser = await launchBrowser(engineName);
     const base = `http://127.0.0.1:${server.address().port}`;
     const page = await browser.newPage({
       viewport: { width: 1280, height: 900 },

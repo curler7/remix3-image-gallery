@@ -71,3 +71,21 @@ Portable gallery, lifecycle, extension, resource-budget and codec assertions run
 ### Shared WebKit integration coverage
 
 WebKit uses the same required gallery and feature runners as Chromium and Firefox, alongside its codec/lifecycle integration suite. The launcher retains the scoped local runtime. Seven WebKit-specific visual baselines isolate engine rendering differences; normal verification never rewrites them. Mouse and single-touch activation use Playwright input, while multi-pointer recognizer tests explicitly report synthetic Pointer Events because Playwright exposes no native WebKit multi-touch injector.
+
+### Requirement audit corrections
+
+The current requirement matrix is in docs/requirement-audit.md. Origin constraints
+are enforced before SSR image markup and within controller validation, so rejected
+dynamic updates cannot leave committed data outside the renderer's policy. SSR and
+DOM share the configured decode ceiling. Mutations use batched pre/post layout
+measurements and cancelable FLIP animations in the reusable DOM adapter rather than
+only the demo. The adapter cancels outstanding reflow on reduced-motion changes and
+teardown. History records an instance owner while preserving host state; disabled
+history never follows popstate. Replacing a direct deep-link URL does not acquire a
+pushed entry, so closing cannot spuriously navigate Back. Modal focus traversal
+includes custom interactive metadata; editing keys retain native semantics.
+
+Chromium now uses the same required gallery, feature/resource and codec/lifecycle
+suites as Firefox and WebKit, through a shared engine-validated launcher. The
+throttled benchmark records mouse-click handler to two-frame opportunities as a
+latency proxy, explicitly excluding OS input delay and display presentation timing.

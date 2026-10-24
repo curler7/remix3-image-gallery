@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { build } from "esbuild";
 import { serve } from "../scripts/server.mjs";
+import { auditInteractions } from "./requirement-audit.mjs";
 
 export async function runFeatureSuite(engineName = "chromium") {
   const server = serve(0);
@@ -524,6 +525,10 @@ export async function runFeatureSuite(engineName = "chromium") {
     await touch.close();
     results.push(
       `${engineName === "chromium" ? "Native touch injection" : "Synthetic multi-pointer"} deep-zoom pinch and bounded rendering passed`,
+    );
+    await auditInteractions(page);
+    results.push(
+      "Requirement audit: isolated history, Home/End routes, editable metadata, full focus order, invalid reopen and bounded comparison passed",
     );
     assert.deepEqual(errors, []);
     await writeFile(

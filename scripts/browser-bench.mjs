@@ -38,6 +38,43 @@ try {
     waitUntil: "networkidle",
   });
   await page.waitForSelector("dialog", { state: "attached" });
+  await page.locator(".tile").first().click();
+  await page.waitForFunction(
+    () => document.querySelector(".stage img").style.opacity === "1",
+  );
+  await page.evaluate(() => {
+    globalThis.interactionSamples = [];
+    document
+      .querySelector("[data-action=zoom]")
+      .addEventListener("click", () => {
+        const start = performance.now();
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() =>
+            interactionSamples.push(performance.now() - start),
+          ),
+        );
+      });
+  });
+  for (let i = 0; i < 20; i++) {
+    await page.locator("[data-action=zoom]").click();
+    await page.waitForFunction(
+      (count) => interactionSamples.length === count,
+      i + 1,
+    );
+  }
+  const interaction = await page.evaluate(() => {
+    const samples = [...interactionSamples].sort((a, b) => a - b);
+    return {
+      count: samples.length,
+      p95ms: samples[18],
+      p99ms: samples[19],
+      samples,
+      methodology:
+        "Twenty Playwright mouse clicks on viewer zoom under the same CPU/network throttle; measured from click handler entry through two requestAnimationFrame callbacks. This approximates event-to-present opportunity, excludes automation transport and OS input delay, and is not a measured display presentation timestamp.",
+    };
+  });
+  await page.locator("[data-action=close]").click();
+  await page.waitForFunction(() => !document.querySelector("dialog[open]"));
   const report = await page.evaluate(async () => {
     const timings = [],
       decoded = [],
@@ -93,6 +130,7 @@ try {
   });
   report.methodology =
     "Chromium headless, 4x CPU, 150ms latency, 750kB/s download, empty network cache. LCP/CLS measured on local SVG demo. Decode stress uses twelve distinct seeded high-entropy 1500x1000 JPEGs retained simultaneously; estimated pixel memory is not measured native memory. Canvas generation and JPEG encoding also contribute long tasks. No real-device or photographic performance claim.";
+  report.interaction = interaction;
   await writeFile(
     "artifacts/throttled-performance.json",
     JSON.stringify(report, null, 2),
