@@ -45,3 +45,36 @@ test("SSR never selects a full-resolution gigapixel asset as a thumbnail", async
   assert.doesNotMatch(html, /must-not-load/);
   assert.match(html, /Giant atlas/);
 });
+test("SSR enforces origin and custom decode budgets before emitting image requests", async () => {
+  const item = {
+    id: "a",
+    src: "/a.jpg",
+    alt: "A",
+    title: "A",
+    category: "A",
+    width: 2000,
+    height: 1000,
+    preview: "/preview.jpg",
+  };
+  const html = await renderToString(
+    h(Gallery, { items: [item], options: { maxDecodedPixels: 1000000 } }),
+  );
+  assert.match(html, /preview.jpg/);
+  assert.doesNotMatch(html, /src="\/a.jpg"/);
+  for (const patch of [
+    { src: "https://blocked.test/a.jpg" },
+    { preview: "https://blocked.test/a.jpg" },
+    { srcset: "https://blocked.test/a.jpg 2000w" },
+    { sources: [{ srcset: "https://blocked.test/a.jpg 2000w" }] },
+  ])
+    await assert.rejects(
+      async () =>
+        renderToString(
+          h(Gallery, {
+            items: [{ ...item, ...patch }],
+            options: { allowedOrigins: ["https://allowed.test"] },
+          }),
+        ),
+      /Unsupported image URL/,
+    );
+});

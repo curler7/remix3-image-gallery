@@ -11,6 +11,17 @@ interface Props {
 }
 export function Gallery(handle: Handle<Props>) {
   const { items, enhance, ready, options } = handle.props;
+  const maxPixels = options?.maxDecodedPixels ?? 40_000_000;
+  if (!Number.isFinite(maxPixels) || maxPixels < 1)
+    throw Error("Invalid image decode budget");
+  const url = (value: string) => safeURL(value, options?.allowedOrigins);
+  const srcset = (value: string) => safeSrcset(value, options?.allowedOrigins);
+  for (const item of items) {
+    url(item.src);
+    if (item.preview) url(item.preview);
+    if (item.srcset) srcset(item.srcset);
+    for (const source of item.sources ?? []) srcset(source.srcset);
+  }
   return () =>
     h(
       "div",
@@ -34,21 +45,21 @@ export function Gallery(handle: Handle<Props>) {
             h(
               "picture",
               {},
-              ...(i.width * i.height > 40_000_000 ? [] : (i.sources ?? [])).map(
+              ...(i.width * i.height > maxPixels ? [] : (i.sources ?? [])).map(
                 (source) =>
                   h("source", {
-                    srcset: safeSrcset(source.srcset),
+                    srcset: srcset(source.srcset),
                     media: source.media,
                     type: source.type,
                   }),
               ),
               h("img", {
                 src:
-                  i.width * i.height > 40_000_000
+                  i.width * i.height > maxPixels
                     ? i.preview
-                      ? safeURL(i.preview)
+                      ? url(i.preview)
                       : undefined
-                    : safeURL(i.src),
+                    : url(i.src),
                 alt: i.alt,
                 width: i.width,
                 height: i.height,
@@ -56,8 +67,8 @@ export function Gallery(handle: Handle<Props>) {
                 decoding: "async",
                 fetchpriority: index === 0 ? "high" : "auto",
                 srcset:
-                  i.srcset && i.width * i.height <= 40_000_000
-                    ? safeSrcset(i.srcset)
+                  i.srcset && i.width * i.height <= maxPixels
+                    ? srcset(i.srcset)
                     : undefined,
                 sizes: i.sizes ?? "(max-width: 600px) 100vw, 33vw",
               }),

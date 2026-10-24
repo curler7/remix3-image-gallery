@@ -87,12 +87,6 @@ const allItems: GalleryImage[] = JSON.parse(
 let category = location.pathname.match(/^\/category\/(\w+)$/)?.[1] ?? "all";
 const sort = document.querySelector<HTMLSelectElement>("#sort")!;
 function filterView() {
-  const old = new Map(
-    [...root.querySelectorAll<HTMLElement>("[data-id]")].map((el) => [
-      el.dataset.id,
-      el.getBoundingClientRect(),
-    ]),
-  );
   let next = allItems.filter(
     (item) => category === "all" || item.category.toLowerCase() === category,
   );
@@ -110,23 +104,6 @@ function filterView() {
         a.dataset.filter!.toLowerCase() === category,
       ),
     );
-  if (!reduced)
-    for (const el of root.querySelectorAll<HTMLElement>("[data-id]")) {
-      const from = old.get(el.dataset.id),
-        to = el.getBoundingClientRect();
-      el.animate(
-        from
-          ? [
-              {
-                transform: `translate(${from.left - to.left}px,${from.top - to.top}px)`,
-                opacity: 0.5,
-              },
-              { transform: "translate(0,0)", opacity: 1 },
-            ]
-          : [{ opacity: 0 }, { opacity: 1 }],
-        { duration: 260, easing: "ease-out" },
-      );
-    }
 }
 for (const link of document.querySelectorAll<HTMLAnchorElement>(
   "[data-filter]",
@@ -205,8 +182,10 @@ document.querySelector("#deep")!.addEventListener("click", async () => {
   root.dataset.ready = "true";
   root.querySelector<HTMLElement>(".deep-scene")!.focus();
 });
-let stopExtensions: (() => void) | undefined;
+let stopExtensions: (() => void) | undefined,
+  extensionGeneration = 0;
 document.querySelector("#extensions")!.addEventListener("click", async () => {
+  const generation = ++extensionGeneration;
   const root = document.querySelector<HTMLElement>("#extension-demo")!;
   stopExtensions?.();
   stopExtensions = undefined;
@@ -214,7 +193,7 @@ document.querySelector("#extensions")!.addEventListener("click", async () => {
   if (root.hidden) return;
   const { synchronizedCompare, annotations, slideshow } =
     await import("../../src/extensions.js");
-  if (root.hidden) return;
+  if (generation !== extensionGeneration || root.hidden) return;
   const stopCompare = synchronizedCompare(
     root,
     allItems[0]!.src,
@@ -257,6 +236,7 @@ window.addEventListener(
   "pagehide",
   () => {
     deepGeneration++;
+    extensionGeneration++;
     stopDeep?.();
     stopExtensions?.();
   },

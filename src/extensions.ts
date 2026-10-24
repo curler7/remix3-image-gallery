@@ -60,6 +60,9 @@ export function compareImages(root: HTMLElement, left: string, right: string) {
 export interface CompareOptions {
   beforeAfter?: boolean;
   labels?: [string, string];
+  uiLabels?: Partial<
+    Record<"region" | "pan" | "in" | "out" | "reset" | "split", string>
+  >;
 }
 /** Independently loaded synchronized comparison with keyboard-equivalent zoom controls. */
 export function synchronizedCompare(
@@ -72,13 +75,17 @@ export function synchronizedCompare(
     life = new AbortController();
   const container = doc.createElement("section");
   container.className = "compare-view";
-  container.setAttribute("aria-label", "Image comparison");
+  container.setAttribute(
+    "aria-label",
+    options.uiLabels?.region ?? "Image comparison",
+  );
   const pictures = doc.createElement("div");
   pictures.className = "compare-pictures";
   pictures.tabIndex = 0;
   pictures.setAttribute(
     "aria-label",
-    "Comparison pan area. Use arrow keys to pan when zoomed.",
+    options.uiLabels?.pan ??
+      "Comparison pan area. Use arrow keys to pan when zoomed.",
   );
   const images = [left, right].map((src, index) => {
     const img = doc.createElement("img");
@@ -91,15 +98,21 @@ export function synchronizedCompare(
   let scale = 1,
     x = 0,
     y = 0,
+    width = 0,
+    height = 0,
     last: { x: number; y: number } | undefined;
   const update = () => {
+    const limitX = (width * (scale - 1)) / (options.beforeAfter ? 2 : 4),
+      limitY = (height * (scale - 1)) / 2;
+    x = Math.max(-limitX, Math.min(limitX, x));
+    y = Math.max(-limitY, Math.min(limitY, y));
     for (const img of images)
       img.style.transform = `translate(${x}px,${y}px) scale(${scale})`;
   };
   for (const [label, delta] of [
-    ["Zoom in", 0.25],
-    ["Zoom out", -0.25],
-    ["Reset comparison", 0],
+    [options.uiLabels?.in ?? "Zoom in", 0.25],
+    [options.uiLabels?.out ?? "Zoom out", -0.25],
+    [options.uiLabels?.reset ?? "Reset comparison", 0],
   ] as const) {
     const button = doc.createElement("button");
     button.textContent = label;
@@ -180,7 +193,10 @@ export function synchronizedCompare(
     range.min = "0";
     range.max = "100";
     range.value = "50";
-    range.setAttribute("aria-label", "Before and after split");
+    range.setAttribute(
+      "aria-label",
+      options.uiLabels?.split ?? "Before and after split",
+    );
     const split = () =>
       (images[1]!.style.clipPath = `inset(0 0 0 ${range.value}%)`);
     range.addEventListener("input", split, { signal: life.signal });
@@ -188,7 +204,16 @@ export function synchronizedCompare(
     split();
   }
   root.append(container);
+  const measure = () => {
+    width = pictures.clientWidth;
+    height = pictures.clientHeight;
+    update();
+  };
+  measure();
+  const observer = new ResizeObserver(measure);
+  observer.observe(pictures);
   return () => {
+    observer.disconnect();
     life.abort();
     container.remove();
   };

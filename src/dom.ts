@@ -15,6 +15,7 @@ import {
 } from "./core.js";
 import { bounds, clamp, decay, focalZoom, windowRange } from "./geometry.js";
 const locks = new WeakMap<Document, { count: number; overflow: string }>();
+let gallerySequence = 0;
 export interface DOMOptions {
   history?: boolean;
   motion?: MotionProfile;
@@ -55,6 +56,12 @@ export function mountGallery(
     win = doc.defaultView!,
     life = new AbortController(),
     signal = life.signal;
+  const historyOwner = ++gallerySequence;
+  const reflowAnimations = new Set<Animation>();
+  const stopReflow = () => {
+    for (const animation of reflowAnimations) animation.cancel();
+    reflowAnimations.clear();
+  };
   for (const item of items) {
     safeURL(item.src, options.allowedOrigins);
     if (item.preview) safeURL(item.preview, options.allowedOrigins);
@@ -62,7 +69,9 @@ export function mountGallery(
     for (const source of item.sources ?? [])
       safeSrcset(source.srcset, options.allowedOrigins);
   }
-  const controller = new GalleryController(items);
+  const controller = new GalleryController(items, {
+    allowedOrigins: options.allowedOrigins,
+  });
   items = controller.snapshot.items;
   const media = new MediaCache(6, options.provider);
   const reducedData =
@@ -357,7 +366,11 @@ export function mountGallery(
     image.style.cursor = scale > 1 ? "grab" : "zoom-in";
   }
   function zoom(next: number, fx = 0, fy = 0, animate = true) {
-    const from = win.getComputedStyle(image).transform;
+    stopMotion();
+    const from =
+      animate && motion.zoomDuration && !pointers.size
+        ? win.getComputedStyle(image).transform
+        : image.style.transform;
     zoomAnimation?.cancel();
     openingAnimation?.cancel();
     ({ x, y, scale } = focalZoom(
@@ -533,17 +546,18 @@ export function mountGallery(
         openingDialogAnimation?.cancel();
         zoomAnimation?.cancel();
         stopMotion();
+        stopReflow();
         if (closing) void close(closing.fromHistory, true);
       }
     },
     { signal },
   );
   function open(id: string, push = true) {
+    const item = controller.snapshot.items.find((i) => i.id === id);
+    if (!item) return;
     cancelClosing();
     const wasOpen = dialog.open;
     if (wasOpen) thumbnailRect = undefined;
-    const item = controller.snapshot.items.find((i) => i.id === id);
-    if (!item) return;
     if (!dialog.open && source?.dataset.id === id) {
       const r = source.querySelector("img")?.getBoundingClientRect();
       if (r && r.bottom > 0 && r.top < win.innerHeight) thumbnailRect = r;
@@ -604,9 +618,18 @@ export function mountGallery(
     }
     if (options.history && push) {
       const url = `/image/${encodeURIComponent(id)}`;
-      if (wasOpen) win.history.replaceState({ gallery: true, id }, "", url);
-      else win.history.pushState({ gallery: true, id }, "", url);
-      ownedHistory = true;
+      const state = {
+        ...win.history.state,
+        gallery: true,
+        galleryOwner: historyOwner,
+        galleryPushed: wasOpen ? ownedHistory : true,
+        id,
+      };
+      if (wasOpen) win.history.replaceState(state, "", url);
+      else {
+        win.history.pushState(state, "", url);
+        ownedHistory = true;
+      }
     }
   }
   function navigate(n: number) {
@@ -614,7 +637,13 @@ export function mountGallery(
     controller.navigate(n, rtl());
     if (options.history && controller.snapshot.active)
       win.history.replaceState(
-        { gallery: true, id: controller.snapshot.active },
+        {
+          ...win.history.state,
+          gallery: true,
+          galleryOwner: historyOwner,
+          galleryPushed: ownedHistory,
+          id: controller.snapshot.active,
+        },
         "",
         `/image/${encodeURIComponent(controller.snapshot.active)}`,
       );
@@ -653,7 +682,13 @@ export function mountGallery(
         open(id, false);
         if (options.history)
           win.history.replaceState(
-            { gallery: true, id },
+            {
+              ...win.history.state,
+              gallery: true,
+              galleryOwner: historyOwner,
+              galleryPushed: ownedHistory,
+              id,
+            },
             "",
             `/image/${encodeURIComponent(id)}`,
           );
@@ -741,12 +776,18 @@ export function mountGallery(
   dialog.addEventListener(
     "keydown",
     (e) => {
+      // Custom metadata controls keep their native editing and keyboard behavior.
+      const editing = (e.target as Element).closest(
+        "input,select,textarea,[contenteditable]:not([contenteditable=false])",
+      );
+      if (editing && e.key !== "Tab" && e.key !== "Escape") return;
       if (
         scale > 1 &&
         !e.altKey &&
         ["ArrowRight", "ArrowLeft", "ArrowUp", "ArrowDown"].includes(e.key)
       ) {
         e.preventDefault();
+        stopMotion();
         const step = e.shiftKey ? 80 : 30;
         if (e.key === "ArrowRight") x -= step;
         if (e.key === "ArrowLeft") x += step;
@@ -771,15 +812,25 @@ export function mountGallery(
         e.preventDefault();
         navigate(-1);
       }
-      if (e.key === "Home") open(items[0]!.id, false);
-      if (e.key === "End") open(items.at(-1)!.id, false);
+      if ((e.key === "Home" || e.key === "End") && items.length) {
+        e.preventDefault();
+        open((e.key === "Home" ? items[0] : items.at(-1))!.id);
+      }
       if (e.key === "+" || e.key === "=") zoom(nextZoom(scale, levels, 1));
       if (e.key === "-") zoom(nextZoom(scale, levels, -1));
       if (e.key === "0") zoom(1);
       if (e.key === "Tab") {
         const buttons = [
-          ...dialog.querySelectorAll<HTMLButtonElement>("button"),
-        ];
+          ...dialog.querySelectorAll<HTMLElement>(
+            'button,a[href],input,select,textarea,[tabindex],[contenteditable="true"]',
+          ),
+        ].filter(
+          (el) =>
+            el.tabIndex >= 0 &&
+            !el.matches(":disabled") &&
+            !el.closest("[hidden],[inert]") &&
+            el.getClientRects().length > 0,
+        );
         const first = buttons[0]!,
           last = buttons.at(-1)!;
         if (e.shiftKey && doc.activeElement === first) {
@@ -915,6 +966,7 @@ export function mountGallery(
           );
       }
       if (e.type === "pointerup" && !wasPinched && scale > 1 && !reduced) {
+        if (performance.now() - sampleTime > 100) velocity = { x: 0, y: 0 };
         let last = performance.now();
         const tick = (now: number) => {
           const dt = Math.min(32, now - last);
@@ -932,6 +984,7 @@ export function mountGallery(
         frame = win.requestAnimationFrame(tick);
       }
       if (
+        e.type === "pointerup" &&
         e.pointerType === "touch" &&
         Math.hypot(e.clientX - start.x, e.clientY - start.y) < 10 &&
         !wasPinched
@@ -964,19 +1017,46 @@ export function mountGallery(
   image.addEventListener(
     "error",
     () => {
-      dialog.querySelector(".viewer-status")!.textContent =
-        "Image unavailable. Select another image or try again.";
+      dialog.querySelector(".viewer-status")!.textContent = label(
+        "error",
+        "Image unavailable. Use Retry image or choose another image.",
+      );
     },
     { signal },
   );
   win.addEventListener(
     "popstate",
     () => {
-      const id = win.location.pathname.match(/^\/image\/([^/]+)$/)?.[1];
-      if (id) open(decodeURIComponent(id), false);
-      else {
+      if (!options.history) return;
+      if (
+        win.history.state?.galleryOwner &&
+        win.history.state.galleryOwner !== historyOwner
+      ) {
         ownedHistory = false;
-        close(true);
+        controller.open(null);
+        return;
+      }
+      const id = win.location.pathname.match(/^\/image\/([^/]+)$/)?.[1];
+      if (id) {
+        // Malformed or unrelated routes must not break other mounted galleries.
+        let decoded: string;
+        try {
+          decoded = decodeURIComponent(id);
+        } catch {
+          return;
+        }
+        ownedHistory =
+          win.history.state?.galleryOwner === historyOwner &&
+          win.history.state?.galleryPushed === true;
+        if (items.some((item) => item.id === decoded)) open(decoded, false);
+        else {
+          ownedHistory = false;
+          controller.open(null);
+        }
+      } else {
+        ownedHistory = false;
+        // Publish the closed state before route filtering emits another snapshot.
+        controller.open(null);
       }
     },
     { signal },
@@ -994,6 +1074,18 @@ export function mountGallery(
           safeSrcset(source.srcset, options.allowedOrigins);
       }
       const focused = (doc.activeElement as HTMLElement)?.dataset.id;
+      // Measure both layouts in batches. Cancel obsolete transitions before writes.
+      const previous = new Map(
+        [...root.querySelectorAll<HTMLElement>("[data-id]")].map((tile) => [
+          tile.dataset.id,
+          tile.getBoundingClientRect(),
+        ]),
+      );
+      stopReflow();
+      adjacent?.abort();
+      for (const decoded of decodedNeighbors.values()) decoded.src = "";
+      decodedNeighbors.clear();
+      media.clear();
       items = state.items;
       const fragment = doc.createDocumentFragment();
       for (const item of items) {
@@ -1045,6 +1137,34 @@ export function mountGallery(
         fragment.append(a);
       }
       root.replaceChildren(fragment);
+      if (!reduced && motion.duration) {
+        const next = [...root.querySelectorAll<HTMLElement>("[data-id]")].map(
+          (tile) => ({
+            tile,
+            from: previous.get(tile.dataset.id),
+            to: tile.getBoundingClientRect(),
+          }),
+        );
+        for (const { tile, from, to } of next) {
+          const animation = animate(
+            tile,
+            from
+              ? [
+                  {
+                    transform: `translate(${from.left - to.left}px,${from.top - to.top}px)`,
+                    opacity: 0.5,
+                  },
+                  { transform: "translate(0,0)", opacity: 1 },
+                ]
+              : [{ opacity: 0 }, { opacity: 1 }],
+            { duration: motion.duration, easing: motion.easing },
+          );
+          reflowAnimations.add(animation);
+          void animation.finished
+            .catch(() => {})
+            .then(() => reflowAnimations.delete(animation));
+        }
+      }
       if (focused)
         for (const a of root.querySelectorAll<HTMLElement>("[data-id]"))
           if (a.dataset.id === focused) a.focus({ preventScroll: true });
@@ -1078,6 +1198,7 @@ export function mountGallery(
     close,
     destroy: () => {
       unsubscribe();
+      stopReflow();
       void close(true, true);
       zoomAnimation?.cancel();
       openingDialogAnimation?.cancel();

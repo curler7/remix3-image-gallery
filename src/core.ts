@@ -40,7 +40,10 @@ export class GalleryController {
   #selected = new Set<string>();
   #listeners = new Set<(state: Snapshot) => void>();
   #dead = false;
-  constructor(items: readonly GalleryImage[]) {
+  constructor(
+    items: readonly GalleryImage[],
+    private options: { allowedOrigins?: readonly string[] } = {},
+  ) {
     this.#items = this.validate(items);
   }
   private assertAlive() {
@@ -52,10 +55,11 @@ export class GalleryController {
     return items.map((i) => {
       if (!i.id || ids.has(i.id)) throw Error("Duplicate or empty image ID");
       ids.add(i.id);
-      safeURL(i.src);
-      if (i.preview) safeURL(i.preview);
-      if (i.srcset) safeSrcset(i.srcset);
-      for (const source of i.sources ?? []) safeSrcset(source.srcset);
+      safeURL(i.src, this.options.allowedOrigins);
+      if (i.preview) safeURL(i.preview, this.options.allowedOrigins);
+      if (i.srcset) safeSrcset(i.srcset, this.options.allowedOrigins);
+      for (const source of i.sources ?? [])
+        safeSrcset(source.srcset, this.options.allowedOrigins);
       if (!(
         Number.isFinite(i.width) &&
         Number.isFinite(i.height) &&

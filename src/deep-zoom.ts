@@ -159,7 +159,15 @@ export interface DeepZoomOptions {
   allowedOrigins?: readonly string[];
   labels?: Partial<
     Record<
-      "in" | "out" | "fit" | "actual" | "retry" | "loading" | "error" | "ready",
+      | "in"
+      | "out"
+      | "fit"
+      | "actual"
+      | "retry"
+      | "loading"
+      | "error"
+      | "ready"
+      | "instructions",
       string
     >
   >;
@@ -202,7 +210,7 @@ export function mountDeepZoom(
   scene.setAttribute("role", "img");
   scene.setAttribute(
     "aria-label",
-    `${pyramid.alt}. Arrow keys pan; plus and minus zoom; zero fits.`,
+    `${pyramid.alt}. ${options.labels?.instructions ?? "Arrow keys pan; plus and minus zoom; zero fits."}`,
   );
   const status = doc.createElement("p");
   status.setAttribute("role", "status");

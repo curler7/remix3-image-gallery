@@ -149,3 +149,21 @@ test("responsive layout options resolve container breakpoints and reject invalid
   assert.throws(() => resolveLayout({ gap: -1 }, 800));
   assert.throws(() => resolveLayout({ aspectRatio: Infinity }, 800));
 });
+test("origin restrictions reject dynamic changes atomically", () => {
+  const c = new GalleryController([item("a")], {
+    allowedOrigins: ["https://allowed.test"],
+  });
+  let emitted = 0;
+  c.subscribe(() => emitted++);
+  assert.throws(() => c.update("a", { src: "https://blocked.test/private" }));
+  assert.throws(() =>
+    c.append([
+      { ...item("b"), sources: [{ srcset: "https://blocked.test/b 400w" }] },
+    ]),
+  );
+  assert.equal(c.snapshot.items.length, 1);
+  assert.equal(c.snapshot.items[0].src, "/a.jpg");
+  assert.equal(emitted, 0);
+  c.update("a", { src: "https://allowed.test/a" });
+  assert.equal(emitted, 1);
+});

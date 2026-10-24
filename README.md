@@ -88,7 +88,7 @@ Automated accessibility checks do not certify accessibility. Before deployment m
 
 ## Measured validation and limitations
 
-`artifacts/benchmarks.json` records actual compressed entry sizes and 100-run p95/p99 controller/layout timing for 100/1,000/10,000 items. `artifacts/browser-results.json` records browser checks. Results are environment-specific. `artifacts/browser-performance.json` records local browser LCP/CLS, scroll frame p95/p99, long tasks, bounded DOM and JS heap. `artifacts/throttled-performance.json` records 4x CPU, 150 ms latency, a 750 kB/s connection and twelve simultaneously retained 1500×1000 synthetic JPEG decodes. Pixel memory is explicitly estimated, not measured. Real photographic/device pressure is not represented by Node timings.
+`artifacts/benchmarks.json` records actual compressed entry sizes and 100-run p95/p99 controller/layout timing for 100/1,000/10,000 items. `artifacts/browser-results.json` records browser checks. Results are environment-specific. `artifacts/browser-performance.json` records local browser LCP/CLS, scroll frame p95/p99, long tasks, bounded DOM and JS heap. `artifacts/throttled-performance.json` records zoom click-to-frame opportunity samples, 4x CPU, 150 ms latency, a 750 kB/s connection and twelve simultaneously retained 1500×1000 synthetic JPEG decodes. Pixel memory is explicitly estimated, not measured. Real photographic/device pressure is not represented by Node timings.
 
 The previously deferred tiled deep zoom, reverse closing morph, rubber-band overscroll and configurable spring/motion profiles are implemented. The API remains 0.x; Remix adapter compatibility is pinned to 3.1.0. Real-device and manual assistive-technology validation remain separate from automated tests.
 
@@ -164,7 +164,7 @@ WebKit's bundled launcher resets `LD_LIBRARY_PATH`, so `scripts/webkit-runtime.m
 
 ## Firefox integration parity
 
-`npm run test:firefox` is a required 27-group integration run: 10 shared gallery scenarios, eight shared feature/resource scenarios, and nine shared codec/lifecycle scenarios. `npm run browser` and `npm run test:all` always include it; launch errors fail the run. `tests/gallery-suite.mjs`, `tests/feature-suite.mjs` and `tests/integration-suite.mjs` hold the shared assertions so Firefox coverage follows future changes rather than a copied smoke test.
+`npm run test:firefox` is a required 28-group integration run: 10 shared gallery scenarios, nine shared feature/resource scenarios, and nine shared codec/lifecycle scenarios. `npm run browser` and `npm run test:all` always include it; launch errors fail the run. `tests/gallery-suite.mjs`, `tests/feature-suite.mjs` and `tests/integration-suite.mjs` hold the shared assertions so Firefox coverage follows future changes rather than a copied smoke test.
 
 Coverage includes SSR/hydration, category/deep-link/history routes, mouse zoom/pan, keyboard navigation and focus containment/restoration, touch activation, RTL/reduced motion/forced colors/tablet resize, all layout APIs, dynamic updates and selection, multiple/nested galleries, provider retry, 10,000-item virtualization, lazy deep zoom, JPEG/PNG decoding, cancellation/concurrency/cache/object URL budgets, oversize-image guards, reverse-close/fade/interruption, comparison/annotations, no-JS and axe accessibility. Screenshot capture loads/decode-checks offscreen gallery images before restoring scroll.
 
@@ -174,7 +174,7 @@ Firefox uses genuine Playwright mouse and single-touch activation at responsive 
 
 ## WebKit integration parity
 
-`npm run test:webkit` runs all 27 scenario groups: 10 shared gallery, eight shared feature/resource and nine codec/lifecycle groups. The full suite requires WebKit and fails on launch errors. Seven independent baselines in `tests/visual/webkit/` cover desktop, mobile, grid, lightbox, zoom/pan, loading and reverse-close. Use `npm run browser:webkit:update` only for intentional baseline updates; normal runs compare without rewriting them.
+`npm run test:webkit` runs all 28 scenario groups: 10 shared gallery, nine shared feature/resource and nine codec/lifecycle groups. The full suite requires WebKit and fails on launch errors. Seven independent baselines in `tests/visual/webkit/` cover desktop, mobile, grid, lightbox, zoom/pan, loading and reverse-close. Use `npm run browser:webkit:update` only for intentional baseline updates; normal runs compare without rewriting them.
 
 WebKit uses Playwright mouse and single-touch input with mobile emulation. Multi-pointer recognition uses explicitly labelled synthetic Pointer Events because Playwright has no native WebKit multi-touch injector. Native device gestures remain a manual check. Aggregate coverage and capabilities are in `artifacts/webkit-results.json`; gallery, feature, integration and performance reports retain the `webkit-` prefix.
 
@@ -231,3 +231,22 @@ All changes to `main` go through a pull request. The GitHub Actions `full-suite`
    ```
 
    Confirm the resulting push run on `main` also passes. Administrator overrides are not part of this workflow. The live pending/failing/passing protection checks are recorded in [the verification document](docs/branch-protection-verification.md).
+
+## Original requirement audit
+
+[The requirement audit](docs/requirement-audit.md) maps every original product,
+engineering and acceptance requirement to implementation and verification, with
+explicit optional exclusions and manual checks. All three browser engines run
+10 shared gallery, nine feature/resource and nine codec/lifecycle scenario groups.
+
+Controller mutations animate repositioning through the DOM adapter using batched
+FLIP measurements; rapid mutations cancel obsolete transitions and reduced motion
+disables them. History-enabled instances scope route events to their owner and
+preserve host history state; galleries without history ignore route events. Custom
+metadata inputs retain their editing keys and participate in the modal focus order.
+
+SSR and dynamic controller updates enforce `allowedOrigins` before rendering or
+committing changes. The SSR adapter honors `maxDecodedPixels` as well. Optional
+comparison controls accept `uiLabels`; deep zoom accepts `labels.instructions` for
+localized keyboard guidance. Real-device and assistive-technology checks remain
+manual; the audit does not claim production certification.

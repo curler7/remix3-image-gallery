@@ -88,3 +88,34 @@ README and ARCHITECTURE now supersede the historical unsupported-feature notes a
 - [x] 25 Publish curler7/remix3-image-gallery, inspect hosted Ubuntu CI failures and visual differences, then verify a complete successful hosted run with downloadable artifacts.
 
 25: Created the private GitHub repository at https://github.com/curler7/remix3-image-gallery and pushed the complete project and CI. The first hosted run exposed Firefox/WebKit fallback-font metric differences in modal controls/captions; reviewed downloaded screenshots and diffs. CI now installs Noto Core and supplies an explicit Fontconfig fallback only to Firefox/WebKit, preserving Chromium defaults. Local and hosted full-suite runs passed with all 21 existing baselines unchanged and the original comparison threshold. Hosted run https://github.com/curler7/remix3-image-gallery/actions/runs/40061201111 passed every stage (20 Node tests, Chromium gallery/features, 27 Firefox groups, 27 WebKit groups, accessibility, visual comparisons, both benchmark commands, type/lint/build/format), and uploaded gallery-reports-40061201111-1 successfully. No skips or remaining failures. Generated reports and local runtime assets are ignored by Git; screenshots and logs remain downloadable from Actions.
+
+## Original requirement audit follow-up
+
+- [x] 26 Map all original requirements to source/tests, optional scope and manual verification in docs/requirement-audit.md.
+- [x] 27 Correct SSR/dynamic origin enforcement, configurable SSR decode budgets, isolated/owned history and Home/End deep links, metadata keyboard/focus behavior, invalid close/reopen and gesture cancellation, stale neighbor cache invalidation, comparison bounds/localization, extension import races and reusable animated updates. Add shared adversarial regressions and actual Chromium codec/lifecycle execution.
+- [x] 28 Extend throttled browser benchmarks with explicitly defined mouse click-to-frame opportunity samples.
+- [x] 29 Rerun the complete final suite and package verification after all audit changes; record exact results and remaining manual checks.
+
+26–28: Initial full audit run passed every CI stage, 22 Node tests, all browser
+suites/21 unchanged visual baselines and benchmarks. Final review then added
+reusable mutation FLIP and history-entry ownership corrections, so a new complete
+run is required before marking task 29 complete. Manual physical-device,
+assistive-technology and native UI checks remain external as documented.
+
+Final navigation regression: actual browser Back (with motion enabled) reproduced
+a timeout: the demo's category refresh reopened the viewer while its close was
+pending. The route listener now publishes closed controller state before refresh.
+History also records whether an entry was pushed, preserving correct close behavior
+after Forward without navigating Back from direct deep links. Shared regressions
+exercise real Back/Forward, owner isolation and preservation of host history state.
+
+29: Final npm run test:ci exited 0 after the navigation fixes. All ten stages
+passed: strict library/demo typecheck/lint, build and 22 Node tests, all three
+browser engines with 28 groups each (10 gallery, nine features, nine integration),
+axe, all 21 unchanged visual baselines, Node and throttled browser/decode/interaction
+benchmarks, and formatting. No scenario/launch skips. Package dry-run validates
+25 published files and all public modules/declarations. Consolidated evidence:
+artifacts/requirement-audit-results.json; required stage evidence/logs:
+artifacts/ci/. The requirement matrix documents optional exclusions and remaining
+physical-device/screen-reader/native-UI checks. No unresolved automated failure
+remains; this follow-up has not been pushed to GitHub.
