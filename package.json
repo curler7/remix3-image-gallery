@@ -1,0 +1,104 @@
+{
+  "name": "@gallery/interactive",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": [
+    "./public/style.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js"
+    },
+    "./dom": {
+      "types": "./dist/dom.d.ts",
+      "import": "./dist/dom.js"
+    },
+    "./remix3": {
+      "types": "./dist/remix3.d.ts",
+      "import": "./dist/remix3.js"
+    },
+    "./extensions": {
+      "types": "./dist/extensions.d.ts",
+      "import": "./dist/extensions.js"
+    },
+    "./geometry": {
+      "types": "./dist/geometry.d.ts",
+      "import": "./dist/geometry.js"
+    },
+    "./media": {
+      "types": "./dist/media.d.ts",
+      "import": "./dist/media.js"
+    },
+    "./pagination": {
+      "types": "./dist/pagination.d.ts",
+      "import": "./dist/pagination.js"
+    },
+    "./layouts": {
+      "types": "./dist/layouts.d.ts",
+      "import": "./dist/layouts.js"
+    },
+    "./styles": "./public/style.css",
+    "./deep-zoom": {
+      "types": "./dist/deep-zoom.d.ts",
+      "import": "./dist/deep-zoom.js"
+    },
+    "./motion": {
+      "types": "./dist/motion.d.ts",
+      "import": "./dist/motion.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc && node scripts/build.mjs",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.demo.json",
+    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters && tsc -p tsconfig.demo.json --noUnusedLocals --noUnusedParameters",
+    "format": "prettier --write src scripts tests .github apps public/style.css ARCHITECTURE.md TASKS.md README.md package.json package-lock.json tsconfig*.json",
+    "format:check": "prettier --check src scripts tests .github apps public/style.css ARCHITECTURE.md TASKS.md README.md package.json package-lock.json tsconfig*.json",
+    "test": "npm run build && node --test --test-isolation=none tests/*.test.mjs",
+    "check": "npm run format && npm run lint && npm run test",
+    "demo": "npm run build && node scripts/server.mjs",
+    "browser": "node tests/browser.mjs && node tests/features.mjs && node tests/firefox.mjs && node tests/webkit.mjs",
+    "bench": "node scripts/bench.mjs",
+    "browser:update": "UPDATE_VISUALS=1 npm run browser",
+    "bench:browser": "node scripts/browser-bench.mjs",
+    "prepack": "npm run build",
+    "test:all": "npm run typecheck && npm run lint && npm test && npm run browser && npm run bench && npm run bench:browser && npm run format:check",
+    "setup:webkit": "node scripts/setup-webkit.mjs",
+    "test:webkit": "npm run build && node tests/webkit.mjs",
+    "test:firefox": "npm run build && node tests/firefox.mjs",
+    "browser:firefox:update": "UPDATE_VISUALS=1 npm run test:firefox",
+    "browser:webkit:update": "UPDATE_VISUALS=1 npm run test:webkit",
+    "test:ci": "node scripts/ci.mjs"
+  },
+  "devDependencies": {
+    "remix": "3.1.0",
+    "typescript": "6.0.3",
+    "esbuild": "0.28.2",
+    "prettier": "3.9.10",
+    "playwright": "1.64.1",
+    "axe-core": "4.14.0",
+    "pixelmatch": "8.0.0",
+    "pngjs": "7.0.0"
+  },
+  "engines": {
+    "node": ">=24.3.0"
+  },
+  "files": [
+    "dist",
+    "public/style.css",
+    "README.md",
+    "ARCHITECTURE.md"
+  ],
+  "peerDependencies": {
+    "remix": "3.1.0"
+  },
+  "peerDependenciesMeta": {
+    "remix": {
+      "optional": true
+    }
+  },
+  "overrides": {
+    "esbuild": "0.28.2"
+  }
+}
