@@ -84,3 +84,5 @@ README and ARCHITECTURE now supersede the historical unsupported-feature notes a
 - [x] 24 Add required full-suite GitHub Actions CI, failure diagnostics and always-uploaded artifacts; verify the CI runner locally.
 
 24: Added push/PR/manual GitHub Actions on fixed Ubuntu 24.04, Node 24, npm ci and Playwright browser/system dependency installation. CI runner executes all ten stages and preserves failures while continuing independent checks. Always-upload artifacts include logs, reports, actual/expected screenshots and visual diffs with 14-day retention. Local npm run test:ci passed all stages, including 20 Node tests, Chromium, 27-group Firefox and WebKit suites, all 21 unchanged visual baselines and both benchmark commands. Intentional failure checks verified screenshot/error capture and runner continuation/nonzero exit. Workflow YAML parses and formatting passes. Hosted Actions execution awaits pushing this workflow to GitHub; no remote run is claimed.
+
+- [ ] 25 Publish curler7/remix3-image-gallery, inspect hosted Ubuntu CI failures and visual differences, then verify a complete successful hosted run with downloadable artifacts.
