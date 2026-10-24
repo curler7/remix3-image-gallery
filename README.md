@@ -219,12 +219,15 @@ All changes to `main` go through a pull request. The GitHub Actions `full-suite`
    git push
    ```
 
-6. Once GitHub reports the PR ready to merge and its required checks pass, merge it and delete the topic branch:
+6. Once GitHub reports the PR ready to merge and its required checks pass, merge it. GitHub automatically deletes the merged topic branch on the remote; return to `main` and clean up the local branch:
 
    ```sh
-   gh pr merge --squash --delete-branch
+   gh pr merge --squash
    git switch main
    git pull --ff-only
+   git fetch --prune
+   # Only after confirming the PR is merged (squash changes commit IDs):
+   git branch -D your-topic
    ```
 
    Confirm the resulting push run on `main` also passes. Administrator overrides are not part of this workflow. The live pending/failing/passing protection checks are recorded in [the verification document](docs/branch-protection-verification.md).
