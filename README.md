@@ -1,5 +1,7 @@
 # Fieldnotes interactive gallery
 
+[![Full test suite (main)](https://github.com/curler7/remix3-image-gallery/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/curler7/remix3-image-gallery/actions/workflows/ci.yml)
+
 A framework-independent TypeScript gallery with a Remix 3.1 server-rendered demo. No React. Local illustrated images keep the demo usable without third-party image services.
 
 ## Run
@@ -185,3 +187,44 @@ Every run uploads JSON reports, per-stage logs, captured screenshots, expected v
 Hosted visual checks install Noto Core and use `.github/fonts.conf` for Firefox/WebKit to match the Noto Serif/Sans fallback fonts used for the reviewed baselines. Chromium retains its native font configuration. This keeps fallback metrics consistent between Ubuntu releases without replacing visual expectations or changing the comparison threshold.
 
 The project is published at [curler7/remix3-image-gallery](https://github.com/curler7/remix3-image-gallery). The first successful [hosted full-suite verification](https://github.com/curler7/remix3-image-gallery/actions/runs/40061201111) includes all three browser suites, all 21 existing visual baselines and both benchmark commands, with downloadable reports and screenshots.
+
+## Contributing through protected main
+
+All changes to `main` go through a pull request. The GitHub Actions `full-suite` check must pass on the current PR revision, and the branch must be up to date with `main`. These requirements also apply to administrators; force pushes and deletion of `main` are blocked. The badge above shows push CI on `main`; use the PR's checks to assess its own revision.
+
+1. Start from an up-to-date `main` and create a topic branch:
+
+   ```sh
+   git switch main
+   git pull --ff-only
+   git switch -c your-topic
+   ```
+
+2. Make the change and run the checks. Follow the browser dependency setup in [Run](#run), then use `npm run test:ci` for the same stages as hosted CI. Review intentional visual changes before updating baselines; never regenerate them just to hide a regression.
+3. Commit and push the topic branch, then open a PR targeting `main`:
+
+   ```sh
+   git add <changed-files>
+   git commit -m "Describe the change"
+   git push -u origin your-topic
+   gh pr create --base main
+   ```
+
+4. Wait for `full-suite` to pass. If it fails, inspect the run's `gallery-reports-<run id>-<attempt>` artifact for per-stage logs, JSON results, screenshots and visual diffs. Fix the failure on the topic branch and push again; the new revision must pass its own CI checks.
+5. If the PR falls behind `main`, update the topic branch and rerun CI:
+
+   ```sh
+   git fetch origin
+   git merge origin/main
+   git push
+   ```
+
+6. Once GitHub reports the PR ready to merge and its required checks pass, merge it and delete the topic branch:
+
+   ```sh
+   gh pr merge --squash --delete-branch
+   git switch main
+   git pull --ff-only
+   ```
+
+   Confirm the resulting push run on `main` also passes. Administrator overrides are not part of this workflow. The live pending/failing/passing protection checks are recorded in [the verification document](docs/branch-protection-verification.md).
